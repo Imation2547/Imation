@@ -1,0 +1,158 @@
+setfpscap(120)
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/DenDenZZZ/Kavo-UI-Library/main/Kavo.lua"))()
+local Window = Library.CreateLib("Blade Ball by Imation", "DarkTheme")
+
+-- Main Tab
+local Tab = Window:NewTab("Main")
+local Main = Tab:NewSection("Combat")
+local autoParryEnabled = false
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local Balls = workspace:WaitForChild("Balls", 9e9)
+
+-- Function to verify if the ball is valid
+local function VerifyBall(Ball)
+    return typeof(Ball) == "Instance" and Ball:IsA("BasePart") and Ball:IsDescendantOf(Balls) and Ball:GetAttribute("realBall") == true
+end
+
+-- Function to check if the player is a target
+local function IsTarget()
+    return (Player.Character and Player.Character:FindFirstChild("Highlight"))
+end
+
+-- Function to perform the parry action
+local function Parry()
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+end
+
+-- Toggle for Auto Parry
+Main:NewToggle("Auto Parry", "Parries the ball automatically.", function(state)
+    autoParryEnabled = state
+    print("Auto Parry " .. (autoParryEnabled and "Enabled" or "Disabled"))
+end)
+
+-- Monitor for new balls
+Balls.ChildAdded:Connect(function(Ball)
+    if not VerifyBall(Ball) then
+        return
+    end
+
+    local OldPosition = Ball.Position
+    local OldTick = tick()
+
+    Ball:GetPropertyChangedSignal("Position"):Connect(function()
+        if autoParryEnabled and IsTarget() then
+            local Distance = (Ball.Position - workspace.CurrentCamera.Focus.Position).Magnitude
+            local Velocity = (OldPosition - Ball.Position).Magnitude
+
+            if (Distance / Velocity) <= 10 then
+                Parry()
+            end
+        end
+
+        if (tick() - OldTick >= 1/60) then
+            OldTick = tick()
+            OldPosition = Ball.Position
+        end
+    end)
+end)
+
+Main:NewButton("Manual Spam", "Spam parries whenever turned on.", function() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Imation2547/Imation/refs/heads/main/Manual"))()
+end)
+
+-- Misc Tab
+local Misc = Tab:NewSection("Extra")
+
+Misc:NewToggle("Follow Ball", "Fly towards the ball.", function(state)
+    getgenv().FB = state
+end)
+
+spawn(function()
+    local TweenService = game:GetService("TweenService")
+    local plr = game.Players.LocalPlayer
+    local Ball = workspace:WaitForChild("Balls")
+    local currentTween = nil
+
+    while true do
+        wait(0.001)
+        if getgenv().FB then
+            local ball = Ball:FindFirstChildOfClass("Part")
+            local char = plr.Character
+            if ball and char then
+                local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0)
+                local distance = (char.PrimaryPart.Position - ball.Position).magnitude
+                if distance <= 1000 then 
+                    if currentTween then
+                        currentTween:Pause()
+                    end
+                    currentTween = TweenService:Create(char.PrimaryPart, tweenInfo, {CFrame = ball.CFrame})
+                    currentTween:Play()
+                end
+            end
+        else
+            if currentTween then
+                currentTween:Pause()
+                currentTween = nil
+            end
+        end
+    end
+end)
+
+Misc:NewToggle("Night Mode", "Turns the atmosphere into night", function(state)
+    getgenv().NM = state
+end)
+
+task.defer(function()
+    while task.wait(1) do
+        local tweenService = game:GetService("TweenService")
+        local lighting = game:GetService("Lighting")
+        if getgenv().NM then
+            tweenService:Create(lighting, TweenInfo.new(3), {ClockTime = 3.9}):Play()
+        else
+            tweenService:Create(lighting, TweenInfo.new(3), {ClockTime = 13.5}):Play()
+        end
+    end
+end)
+
+-- Shop Tab
+local Shop = Tab:NewSection("Crates")
+
+Shop:NewButton("Buy Sword Crate", "Buys the sword crate.", function() 
+    game:GetService("ReplicatedStorage").Remote.RemoteFunction:InvokeServer("PromptPurchaseCrate", workspace.Spawn.Crates.NormalSwordCrate)
+end)
+
+Shop:NewButton("Buy Explosion Crate", "Buys the explosion crate.", function() 
+    game:GetService("ReplicatedStorage").Remote.RemoteFunction:InvokeServer("PromptPurchaseCrate", workspace.Spawn.Crates.NormalExplosionCrate)
+end)
+
+Shop:NewToggle("Auto Buy Sword Crate", "Automatically buys sword crate.", function(state) 
+    getgenv().ASC = state
+end)
+
+Shop:NewToggle("Auto Buy Explosion Crate", "Automatically buys explosion crate", function(state) 
+    getgenv().AEC = state
+end)
+
+-- Auto Buy Sword Crate Logic
+spawn(function()
+    while true do
+        wait(0.01)
+        if getgenv().ASC then
+            game:GetService("ReplicatedStorage").Remote.RemoteFunction:InvokeServer("PromptPurchaseCrate", workspace.Spawn.Crates.NormalSwordCrate)
+        end
+    end
+end)
+
+-- Auto Buy Explosion Crate Logic
+spawn(function()
+    while true do
+        wait(0.01)
+        if getgenv().AEC then
+            game:GetService("ReplicatedStorage").Remote.RemoteFunction:InvokeServer("PromptPurchaseCrate", workspace.Spawn.Crates.NormalExplosionCrate)
+        end
+    end
+end)
