@@ -73,7 +73,7 @@ Main:NewToggle("Auto Parry", "Parries the ball automatically.", function(state)
 end)
 
 Main:NewButton("Manual Spam", "Spam parries whenever turned on.", function() 
-    loadstring(game:HttpGet("https://pastebin.com/raw/bBzkbHtv"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Imation2547/Imation/refs/heads/main/Manual"))()
 end)
 
 -- Misc Tab
